@@ -59,6 +59,12 @@ operator()(propertiest &properties)
     show_program(ns, equation);
   }
 
+  if(options.get_bool_option("show-byte-ops"))
+  {
+    show_byte_extracts(options, ui_message_handler, ns, equation);
+    show_byte_updates(options, ui_message_handler, ns, equation);
+  }
+
   resultt result(resultt::progresst::DONE);
   update_properties(properties, result.updated_properties);
   return result;
