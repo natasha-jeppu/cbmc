@@ -12,6 +12,9 @@ Author: Daniel Kroening, kroening@kroening.com
 #ifndef CPROVER_GOTO_SYMEX_SHOW_PROGRAM_H
 #define CPROVER_GOTO_SYMEX_SHOW_PROGRAM_H
 
+#include <util/ui_message.h>
+
+class optionst;
 class namespacet;
 class symex_target_equationt;
 
@@ -24,5 +27,11 @@ class symex_target_equationt;
 /// \param ns: namespace
 /// \param equation: SSA form of the program
 void show_program(const namespacet &ns, const symex_target_equationt &equation);
+void show_byte_extracts(const optionst &options,
+  ui_message_handlert &ui_message_handler,
+  const namespacet &ns, const symex_target_equationt &equation);
+void show_byte_updates(const optionst &options,
+  ui_message_handlert &ui_message_handler,
+  const namespacet &ns, const symex_target_equationt &equation);
 
 #endif // CPROVER_GOTO_SYMEX_SHOW_PROGRAM_H
