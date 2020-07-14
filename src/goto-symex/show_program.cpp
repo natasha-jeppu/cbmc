@@ -166,3 +166,39 @@ void show_ssa_step_json(std::ostream &out, const namespacet &ns,
 
   json_ssa_step["ssaExpr"] = json_irept(false).convert_from_irep(ssa_expr);
 }
+
+void show_byte_op_plain(messaget::mstreamt &out, const namespacet &ns, 
+  const symex_target_equationt &equation, const int byte_op_type)
+{
+  std::size_t equation_byte_op_count = 0;
+  for(const auto &step : equation.SSA_steps)
+  {
+    if(duplicated_previous_step(step))
+      continue;
+
+    const exprt &ssa_expr = get_ssa_expr(step);
+    std::size_t ssa_expr_byte_op_count = get_byte_op_count(ssa_expr, byte_op_type);
+
+    if(ssa_expr_byte_op_count == 0)
+      continue;
+
+    equation_byte_op_count += ssa_expr_byte_op_count;
+    show_ssa_step_plain(out, ns, step, ssa_expr);
+  }
+
+  switch(byte_op_type)
+  {
+  case BYTE_EXTRACT:
+    out << '\n' << "Number of byte extracts: ";
+    break;
+  case BYTE_UPDATE:
+    out << '\n' << "Number of byte updates: ";
+    break;
+  default:
+    std::cout << "Usage error!\n";
+    exit(CPROVER_EXIT_USAGE_ERROR);
+  }
+
+  out << equation_byte_op_count << '\n';
+  out << messaget::eom;
+}
