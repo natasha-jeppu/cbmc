@@ -260,7 +260,7 @@ void show_byte_op_json(std::ostream &out, const namespacet &ns,
   std::string key_byte_op_stats = json_get_key_byte_op_stats(byte_op_type);
   std::string key_byte_op_list = json_get_key_byte_op_list(byte_op_type);
   std::string key_byte_op_num = json_get_key_byte_op_num(byte_op_type);
-  
+
   json_objectt &byte_op_stats = byte_ops_stats[key_byte_op_stats].make_object();
   json_arrayt &byte_op_list = byte_op_stats[key_byte_op_list].make_array();
 
@@ -281,4 +281,78 @@ void show_byte_op_json(std::ostream &out, const namespacet &ns,
   }
 
   byte_op_stats[key_byte_op_num] = json_numbert(std::to_string(equation_byte_op_count));
+}
+
+bool is_outfile_specified(const optionst &options)
+{
+  const std::string &filename = options.get_option("outfile");
+  return(!filename.empty() && filename != "-");
+}
+
+void show_byte_ops(const optionst &options, 
+  ui_message_handlert &ui_message_handler, 
+  const namespacet &ns, const symex_target_equationt &equation)
+{
+  const std::string &filename = options.get_option("outfile");
+  bool outfile_given = is_outfile_specified(options);
+
+  std::ofstream of;
+
+  if(outfile_given)
+  {
+    of.open(filename,std::fstream::out);
+    if(!of)
+      throw invalid_command_line_argument_exceptiont(
+        "failed to open output file: " + filename, "--outfile");
+  }
+
+  std::ostream &out = outfile_given ? of : std::cout;
+
+  messaget msg(ui_message_handler);
+  switch(ui_message_handler.get_ui())
+  {
+  case ui_message_handlert::uit::XML_UI:
+    msg.error() << "XML UI not supported for displaying byte extracts and updates" << "\n"
+                << "Try --json-ui instead" << messaget::eom;
+    exit(CPROVER_EXIT_USAGE_ERROR);
+
+  case ui_message_handlert::uit::JSON_UI:
+  {
+    json_objectt json_result;
+    json_objectt &byte_ops_stats = json_result["byteOpsStats"].make_object();
+
+    show_byte_op_json(out, ns, equation, BYTE_EXTRACT, byte_ops_stats);
+    show_byte_op_json(out, ns, equation, BYTE_UPDATE, byte_ops_stats);
+
+    out << ",\n" << json_result;
+    break;
+  }
+
+  case ui_message_handlert::uit::PLAIN:
+    if(outfile_given)
+    {
+      stream_message_handlert mout_handler(out);
+      messaget mout(mout_handler);
+
+      msg.status() << "\nByte Extracts written to file"
+                   << messaget::eom;
+      show_byte_op_plain(mout.status(), ns, equation, BYTE_EXTRACT);
+
+      msg.status() << "\nByte Updates written to file"
+                   << messaget::eom;
+      show_byte_op_plain(mout.status(), ns, equation, BYTE_UPDATE);
+    }
+    else
+    {
+      msg.status() << "\nByte Extracts:" << messaget::eom;
+      show_byte_op_plain(msg.status(), ns, equation, BYTE_EXTRACT);
+
+      msg.status() << "\nByte Updates:" << messaget::eom;
+      show_byte_op_plain(msg.status(), ns, equation, BYTE_UPDATE);
+    }
+    break;
+  }
+
+  if(outfile_given)
+    of.close();
 }
