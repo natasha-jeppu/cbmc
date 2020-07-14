@@ -128,10 +128,7 @@ void single_path_symex_only_checkert::equation_output(
     show_program(ns, equation);
 
   if(options.get_bool_option("show-byte-ops"))
-  {
-    show_byte_extracts(options, ui_message_handler, ns, equation);
-    show_byte_updates(options, ui_message_handler, ns, equation);
-  }
+    show_byte_ops(options, ui_message_handler, ns, equation);
 
   if(options.get_bool_option("validate-ssa-equation"))
   {
