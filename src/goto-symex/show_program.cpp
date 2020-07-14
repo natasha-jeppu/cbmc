@@ -244,3 +244,41 @@ std::string json_get_key_byte_op_num(int byte_op_type)
     exit(CPROVER_EXIT_USAGE_ERROR);
   }
 }
+
+void show_byte_op_json(std::ostream &out, const namespacet &ns, 
+  const symex_target_equationt &equation, const int byte_op_type, 
+  json_objectt &byte_ops_stats)
+{
+  // Get key values to be used in the json output based on byte operation type
+  // 1. json_get_key_byte_op_stats(byte_op_type): returns relevant json object key string
+  //    where object records statistics for given byte operation.
+  // 2. json_get_key_byte_op_list(byte_op_type): returns relevant json object key string
+  //    where object records a list of expressions for given byte operation.
+  // 3. json_get_key_byte_op_num(byte_op_type): returns relevant json object key string
+  //    where object number of given byte operation.
+
+  std::string key_byte_op_stats = json_get_key_byte_op_stats(byte_op_type);
+  std::string key_byte_op_list = json_get_key_byte_op_list(byte_op_type);
+  std::string key_byte_op_num = json_get_key_byte_op_num(byte_op_type);
+  
+  json_objectt &byte_op_stats = byte_ops_stats[key_byte_op_stats].make_object();
+  json_arrayt &byte_op_list = byte_op_stats[key_byte_op_list].make_array();
+
+  std::size_t equation_byte_op_count = 0;
+  for(const auto &step : equation.SSA_steps)
+  {
+    if(duplicated_previous_step(step))
+      continue;
+
+    const exprt &ssa_expr = get_ssa_expr(step);
+    std::size_t ssa_expr_byte_op_count = get_byte_op_count(ssa_expr, byte_op_type);
+
+    if(ssa_expr_byte_op_count == 0)
+      continue;
+
+    equation_byte_op_count += ssa_expr_byte_op_count;
+    show_ssa_step_json(out, ns, step, ssa_expr, byte_op_list);
+  }
+
+  byte_op_stats[key_byte_op_num] = json_numbert(std::to_string(equation_byte_op_count));
+}
