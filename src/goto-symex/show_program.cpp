@@ -141,3 +141,28 @@ std::size_t get_byte_op_count(const irept &irep, int byte_op_type)
 
   return count; 
 }
+
+void show_ssa_step_plain(messaget::mstreamt &out, const namespacet &ns, 
+  const SSA_stept &ssa_step, const exprt &ssa_expr)
+{
+  const irep_idt &function_id = ssa_step.source.function_id;
+  std::string string_value = from_expr(ns, function_id, ssa_expr);
+
+  out << messaget::faint << "// " << ssa_step.source.pc->location_number << " ";
+  out << ssa_step.source.pc->source_location.as_string() << "\n" << messaget::reset;
+  out << string_value << "\n";
+}
+
+void show_ssa_step_json(std::ostream &out, const namespacet &ns, 
+  const SSA_stept &ssa_step, const exprt &ssa_expr, json_arrayt &byte_op_list)
+{
+  json_objectt &json_ssa_step = byte_op_list.push_back(jsont()).make_object();
+
+  json_ssa_step["sourceLocation"] = json(ssa_step.source.pc->source_location);
+
+  const irep_idt &function_id = ssa_step.source.function_id;
+  std::string string_value = from_expr(ns, function_id, ssa_expr);
+  json_ssa_step["ssaExprString"] = json_stringt(string_value);
+
+  json_ssa_step["ssaExpr"] = json_irept(false).convert_from_irep(ssa_expr);
+}
