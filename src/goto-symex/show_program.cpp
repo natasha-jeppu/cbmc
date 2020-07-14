@@ -20,6 +20,7 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include <util/ui_message.h>
 #include <util/json_irep.h>
+#include <util/exit_codes.h>
 
 /// Output a single SSA step
 /// \param ns: Namespace
@@ -83,351 +84,60 @@ void show_program(const namespacet &ns, const symex_target_equationt &equation)
   }
 }
 
-// Byte extracts
-static std::size_t get_number_of_byte_extracts(const irept &irep)
+#define BYTE_EXTRACT 0
+#define BYTE_UPDATE 1
+
+bool duplicated_previous_step(const SSA_stept &ssa_step)
 {
+  return !(ssa_step.is_assignment() || ssa_step.is_assert() ||
+            ssa_step.is_assume() || ssa_step.is_constraint() ||
+            ssa_step.is_shared_read() || ssa_step.is_shared_write());
+}
 
-  std::size_t byte_extract_count = 0;
+exprt get_ssa_expr(const SSA_stept &ssa_step)
+{
+  return ((ssa_step.is_shared_read() || ssa_step.is_shared_write())
+                               ? ssa_step.ssa_lhs
+                               : ssa_step.cond_expr);
+}
 
+bool is_byte_extract(const irept &irep)
+{
+  return (irep.id() == ID_byte_extract_little_endian ||
+      irep.id() == ID_byte_extract_big_endian);
+}
+
+bool is_byte_update(const irept &irep)
+{
+  return (irep.id() == ID_byte_update_little_endian ||
+      irep.id() == ID_byte_update_big_endian);
+}
+
+std::size_t get_byte_op_count(const irept &irep, int byte_op_type)
+{
+  std::size_t count = 0;
   if(!irep.id().empty())
   {
-    if(irep.id() == ID_byte_extract_little_endian ||
-      irep.id() == ID_byte_extract_big_endian)
+    switch(byte_op_type)
     {
-      byte_extract_count++;
+    case BYTE_EXTRACT:
+      if(is_byte_extract(irep))
+        count += 1;
+      break;
+    case BYTE_UPDATE:
+      if(is_byte_update(irep))
+        count += 1;
+      break;
+    default:
+      std::cout << "Usage error!\n";
+      exit(CPROVER_EXIT_USAGE_ERROR);
     }
   }
 
   forall_irep(it, irep.get_sub())
   {
-    byte_extract_count += get_number_of_byte_extracts(*it);
+    count += get_byte_op_count(*it, byte_op_type);
   }
 
-  return byte_extract_count;
+  return count; 
 }
-
-void show_byte_extracts_plain(messaget::mstreamt &out,
-  const namespacet &ns, const symex_target_equationt &equation)
-{
-
-  std::size_t byte_extract_count = 0;
-  std::size_t ssa_byte_extract_count = 0;
-  bool proceed = false;
-
-  for(const auto &step : equation.SSA_steps)
-  {
-    const irep_idt &function_id = step.source.function_id;
-
-    std::string string_value = (step.is_shared_read() || step.is_shared_write())
-                               ? from_expr(ns, function_id, step.ssa_lhs)
-                               : from_expr(ns, function_id, step.cond_expr);
-
-    const exprt &s_expr = (step.is_shared_read() || step.is_shared_write())
-                               ? step.ssa_full_lhs
-                               : step.cond_expr;
-
-    proceed = (step.is_assignment() || step.is_assert() ||
-            step.is_assume() || step.is_constraint() ||
-            step.is_shared_read() || step.is_shared_write());
-
-    if(proceed)
-      ssa_byte_extract_count = get_number_of_byte_extracts(s_expr);
-    else
-      ssa_byte_extract_count = 0;
-
-    if(ssa_byte_extract_count > 0)
-    {
-      out << messaget::faint << "// " << step.source.pc->location_number << " ";
-      out << step.source.pc->source_location.as_string() << "\n" << messaget::reset;
-      out << string_value << "\n";
-    }
-
-    byte_extract_count += ssa_byte_extract_count;
-  }
-
-  out << '\n' << "Number of byte extracts: " << byte_extract_count << '\n';
-
-  out << messaget::eom;
-}
-
-void show_byte_extracts_json(std::ostream &out,
-  const namespacet &ns, const symex_target_equationt &equation)
-{
-
-  std::size_t byte_extract_count = 0;
-  std::size_t ssa_byte_extract_count = 0;
-  bool proceed = false;
-
-  json_objectt json_result;
-
-  json_arrayt &json_b_extract = json_result["byte_extract"].make_array();
-
-  for(const auto &step : equation.SSA_steps)
-  {
-    const irep_idt &function_id = step.source.function_id;
-
-    std::string string_value = (step.is_shared_read() || step.is_shared_write())
-                               ? from_expr(ns, function_id, step.ssa_lhs)
-                               : from_expr(ns, function_id, step.cond_expr);
-
-    const exprt &s_expr = (step.is_shared_read() || step.is_shared_write())
-                               ? step.ssa_full_lhs
-                               : step.cond_expr;
-
-    proceed = (step.is_assignment() || step.is_assert() ||
-            step.is_assume() || step.is_constraint() ||
-            step.is_shared_read() || step.is_shared_write());
-
-    if(proceed)
-      ssa_byte_extract_count = get_number_of_byte_extracts(s_expr);
-    else
-      ssa_byte_extract_count = 0;
-
-    if(ssa_byte_extract_count > 0)
-    {
-      //byte extract object
-      json_objectt &object = json_b_extract.push_back(jsont()).make_object();
-
-      object["sourceLocation"] = json(step.source.pc->source_location);
-      object["ssaExprString"] = json_stringt(string_value);
-      object["ssaExpr"] = json_irept(false).convert_from_irep(s_expr);
-
-    }
-
-    byte_extract_count += ssa_byte_extract_count;
-  }
-
-  json_result["numOfExtracts"] = json_numbert(std::to_string(byte_extract_count));
-
-  out << ",\n" << json_result;
-
-}
-
-// Display all byte extracts
-void show_byte_extracts(const optionst &options,
-  ui_message_handlert &ui_message_handler,
-  const namespacet &ns, const symex_target_equationt &equation)
-{
-
-  messaget msg(ui_message_handler);
-
-  const std::string &filename = options.get_option("outfile");
-  bool have_file = !filename.empty() && filename != "-";
-
-  std::ofstream of;
-
-  if(have_file)
-  {
-    of.open(filename);
-    if(!of)
-      throw invalid_command_line_argument_exceptiont(
-        "failed to open output file: " + filename, "--outfile");
-  }
-
-  std::ostream &out = have_file ? of : std::cout;
-
-  switch(ui_message_handler.get_ui())
-  {
-  case ui_message_handlert::uit::XML_UI:
-    msg.error() << "XML UI not supported" << messaget::eom;
-    return;
-
-  case ui_message_handlert::uit::JSON_UI:
-    show_byte_extracts_json(out, ns, equation);
-    break;
-
-  case ui_message_handlert::uit::PLAIN:
-    if(have_file)
-    {
-      msg.status() << "\nByte extracts written to file"
-                   << messaget::eom;
-      stream_message_handlert mout_handler(out);
-      messaget mout(mout_handler);
-      show_byte_extracts_plain(mout.status(), ns, equation);
-    }
-    else
-    {
-      msg.status() << "\nByte Extracts:" << messaget::eom;
-      show_byte_extracts_plain(msg.status(), ns, equation);
-    }
-    break;
-  }
-
-  if(have_file)
-    of.close();
-}
-
-// Byte updates
-static std::size_t get_number_of_byte_updates(const irept &irep)
-{
-
-  std::size_t byte_update_count = 0;
-
-  if(!irep.id().empty())
-  {
-    if(irep.id() == ID_byte_update_little_endian ||
-      irep.id() == ID_byte_update_big_endian)
-    {
-      byte_update_count++;
-    }
-  }
-
-  forall_irep(it, irep.get_sub())
-  {
-    byte_update_count += get_number_of_byte_updates(*it);
-  }
-
-  return byte_update_count;
-}
-
-void show_byte_updates_plain(messaget::mstreamt &out,
-  const namespacet &ns, const symex_target_equationt &equation)
-{
-
-  std::size_t byte_update_count = 0;
-  std::size_t ssa_byte_update_count = 0;
-  bool proceed = false;
-
-  for(const auto &step : equation.SSA_steps)
-  {
-    const irep_idt &function_id = step.source.function_id;
-
-    std::string string_value = (step.is_shared_read() || step.is_shared_write())
-                               ? from_expr(ns, function_id, step.ssa_lhs)
-                               : from_expr(ns, function_id, step.cond_expr);
-
-    const exprt &s_expr = (step.is_shared_read() || step.is_shared_write())
-                               ? step.ssa_full_lhs
-                               : step.cond_expr;
-
-    proceed = (step.is_assignment() || step.is_assert() ||
-            step.is_assume() || step.is_constraint() ||
-            step.is_shared_read() || step.is_shared_write());
-
-    if(proceed)
-      ssa_byte_update_count = get_number_of_byte_updates(s_expr);
-    else
-      ssa_byte_update_count = 0;
-
-    if(ssa_byte_update_count > 0)
-    {
-      out << messaget::faint << "// " << step.source.pc->location_number << " ";
-      out << step.source.pc->source_location.as_string() << "\n" << messaget::reset;
-      out << string_value << "\n";
-    }
-
-    byte_update_count += ssa_byte_update_count;
-  }
-
-  out << '\n' << "Number of byte updates: " << byte_update_count << '\n';
-
-  out << messaget::eom;
-}
-
-void show_byte_updates_json(std::ostream &out,
-  const namespacet &ns, const symex_target_equationt &equation)
-{
-
-  std::size_t byte_update_count = 0;
-  std::size_t ssa_byte_update_count = 0;
-  bool proceed = false;
-
-  json_objectt json_result;
-
-  json_arrayt &json_b_update = json_result["byte_update"].make_array();
-
-  for(const auto &step : equation.SSA_steps)
-  {
-    const irep_idt &function_id = step.source.function_id;
-
-    std::string string_value = (step.is_shared_read() || step.is_shared_write())
-                               ? from_expr(ns, function_id, step.ssa_lhs)
-                               : from_expr(ns, function_id, step.cond_expr);
-
-    const exprt &s_expr = (step.is_shared_read() || step.is_shared_write())
-                               ? step.ssa_full_lhs
-                               : step.cond_expr;
-
-    proceed = (step.is_assignment() || step.is_assert() ||
-            step.is_assume() || step.is_constraint() ||
-            step.is_shared_read() || step.is_shared_write());
-
-    if(proceed)
-      ssa_byte_update_count = get_number_of_byte_updates(s_expr);
-    else
-      ssa_byte_update_count = 0;
-
-    if(ssa_byte_update_count > 0)
-    {
-      //byte update object
-      json_objectt &object = json_b_update.push_back(jsont()).make_object();
-
-      object["sourceLocation"] = json(step.source.pc->source_location);
-      object["ssaExprString"] = json_stringt(string_value);
-      object["ssaExpr"] = json_irept(false).convert_from_irep(s_expr);
-
-    }
-
-    byte_update_count += ssa_byte_update_count;
-  }
-
-  json_result["numOfUpdates"] = json_numbert(std::to_string(byte_update_count));
-
-  out << ",\n" << json_result;
-
-}
-
-// Display all byte updates
-void show_byte_updates(const optionst &options,
-  ui_message_handlert &ui_message_handler,
-  const namespacet &ns, const symex_target_equationt &equation)
-{
-
-  messaget msg(ui_message_handler);
-
-  const std::string &filename = options.get_option("outfile");
-  bool have_file = !filename.empty() && filename != "-";
-
-  std::ofstream of;
-
-  if(have_file)
-  {
-    of.open(filename,std::fstream::out | std::fstream::app);
-    if(!of)
-      throw invalid_command_line_argument_exceptiont(
-        "failed to open output file: " + filename, "--outfile");
-  }
-
-  std::ostream &out = have_file ? of : std::cout;
-
-  switch(ui_message_handler.get_ui())
-  {
-  case ui_message_handlert::uit::XML_UI:
-    msg.error() << "XML UI not supported" << messaget::eom;
-    return;
-
-  case ui_message_handlert::uit::JSON_UI:
-    show_byte_updates_json(out, ns, equation);
-    break;
-
-  case ui_message_handlert::uit::PLAIN:
-    if(have_file)
-    {
-      msg.status() << "\nByte updates written to file"
-                   << messaget::eom;
-      stream_message_handlert mout_handler(out);
-      messaget mout(mout_handler);
-      show_byte_updates_plain(mout.status(), ns, equation);
-    }
-    else
-    {
-      msg.status() << "\nByte Updates:" << messaget::eom;
-      show_byte_updates_plain(msg.status(), ns, equation);
-    }
-    break;
-  }
-
-  if(have_file)
-    of.close();
-}
-
