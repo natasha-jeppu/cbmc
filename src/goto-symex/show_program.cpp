@@ -112,23 +112,22 @@ bool is_byte_update(const irept &irep)
       irep.id() == ID_byte_update_big_endian);
 }
 
+bool irep_is_of_type(const irept &irep, const byte_op_type type)
+{
+  switch(type)
+  {
+  case BYTE_EXTRACT:
+    return is_byte_extract(irep);
+  case BYTE_UPDATE:
+    return is_byte_update(irep);
+  } 
+}
+
 std::size_t get_byte_op_count(const irept &irep, const byte_op_type type)
 {
   std::size_t count = 0;
-  if(!irep.id().empty())
-  {
-    switch(type)
-    {
-    case BYTE_EXTRACT:
-      if(is_byte_extract(irep))
-        count += 1;
-      break;
-    case BYTE_UPDATE:
-      if(is_byte_update(irep))
-        count += 1;
-      break;
-    }
-  }
+  if(!irep.id().empty() && irep_is_of_type(irep, type))
+    count ++;
 
   forall_irep(it, irep.get_sub())
   {
