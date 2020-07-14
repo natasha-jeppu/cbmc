@@ -158,7 +158,6 @@ void show_ssa_step_json(std::ostream &out, const namespacet &ns,
   const irep_idt &function_id = ssa_step.source.function_id;
   std::string string_value = from_expr(ns, function_id, ssa_expr);
   json_ssa_step["ssaExprString"] = json_stringt(string_value);
-
   json_ssa_step["ssaExpr"] = json_irept(false).convert_from_irep(ssa_expr);
 }
 
