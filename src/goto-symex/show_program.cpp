@@ -84,8 +84,7 @@ void show_program(const namespacet &ns, const symex_target_equationt &equation)
   }
 }
 
-#define BYTE_EXTRACT 0
-#define BYTE_UPDATE 1
+enum byte_op_type {BYTE_EXTRACT, BYTE_UPDATE};
 
 bool duplicated_previous_step(const SSA_stept &ssa_step)
 {
@@ -113,12 +112,12 @@ bool is_byte_update(const irept &irep)
       irep.id() == ID_byte_update_big_endian);
 }
 
-std::size_t get_byte_op_count(const irept &irep, int byte_op_type)
+std::size_t get_byte_op_count(const irept &irep, const byte_op_type type)
 {
   std::size_t count = 0;
   if(!irep.id().empty())
   {
-    switch(byte_op_type)
+    switch(type)
     {
     case BYTE_EXTRACT:
       if(is_byte_extract(irep))
@@ -128,15 +127,12 @@ std::size_t get_byte_op_count(const irept &irep, int byte_op_type)
       if(is_byte_update(irep))
         count += 1;
       break;
-    default:
-      std::cout << "Usage error!\n";
-      exit(CPROVER_EXIT_USAGE_ERROR);
     }
   }
 
   forall_irep(it, irep.get_sub())
   {
-    count += get_byte_op_count(*it, byte_op_type);
+    count += get_byte_op_count(*it, type);
   }
 
   return count; 
@@ -168,7 +164,7 @@ void show_ssa_step_json(std::ostream &out, const namespacet &ns,
 }
 
 void show_byte_op_plain(messaget::mstreamt &out, const namespacet &ns, 
-  const symex_target_equationt &equation, const int byte_op_type)
+  const symex_target_equationt &equation, const byte_op_type type)
 {
   std::size_t equation_byte_op_count = 0;
   for(const auto &step : equation.SSA_steps)
@@ -177,7 +173,7 @@ void show_byte_op_plain(messaget::mstreamt &out, const namespacet &ns,
       continue;
 
     const exprt &ssa_expr = get_ssa_expr(step);
-    std::size_t ssa_expr_byte_op_count = get_byte_op_count(ssa_expr, byte_op_type);
+    std::size_t ssa_expr_byte_op_count = get_byte_op_count(ssa_expr, type);
 
     if(ssa_expr_byte_op_count == 0)
       continue;
@@ -186,7 +182,7 @@ void show_byte_op_plain(messaget::mstreamt &out, const namespacet &ns,
     show_ssa_step_plain(out, ns, step, ssa_expr);
   }
 
-  switch(byte_op_type)
+  switch(type)
   {
   case BYTE_EXTRACT:
     out << '\n' << "Number of byte extracts: ";
@@ -194,59 +190,47 @@ void show_byte_op_plain(messaget::mstreamt &out, const namespacet &ns,
   case BYTE_UPDATE:
     out << '\n' << "Number of byte updates: ";
     break;
-  default:
-    std::cout << "Usage error!\n";
-    exit(CPROVER_EXIT_USAGE_ERROR);
   }
 
   out << equation_byte_op_count << '\n';
   out << messaget::eom;
 }
 
-std::string json_get_key_byte_op_stats(int byte_op_type)
+std::string json_get_key_byte_op_stats(const byte_op_type type)
 {
-  switch(byte_op_type)
+  switch(type)
   {
   case BYTE_EXTRACT:
     return "byteExtractStats";
   case BYTE_UPDATE:
     return "byteUpdateStats";
-  default:
-    std::cout << "Usage error!\n";
-    exit(CPROVER_EXIT_USAGE_ERROR);
   }
 }
 
-std::string json_get_key_byte_op_list(int byte_op_type)
+std::string json_get_key_byte_op_list(const byte_op_type type)
 {
-  switch(byte_op_type)
+  switch(type)
   {
   case BYTE_EXTRACT:
     return "byteExtractList";
   case BYTE_UPDATE:
     return "byteUpdateList";
-  default:
-    std::cout << "Usage error!\n";
-    exit(CPROVER_EXIT_USAGE_ERROR);
   }
 }
 
-std::string json_get_key_byte_op_num(int byte_op_type)
+std::string json_get_key_byte_op_num(const byte_op_type type)
 {
-  switch(byte_op_type)
+  switch(type)
   {
   case BYTE_EXTRACT:
     return "numOfExtracts";
   case BYTE_UPDATE:
     return "numOfUpdates";
-  default:
-    std::cout << "Usage error!\n";
-    exit(CPROVER_EXIT_USAGE_ERROR);
   }
 }
 
 void show_byte_op_json(std::ostream &out, const namespacet &ns, 
-  const symex_target_equationt &equation, const int byte_op_type, 
+  const symex_target_equationt &equation, const byte_op_type type, 
   json_objectt &byte_ops_stats)
 {
   // Get key values to be used in the json output based on byte operation type
@@ -257,9 +241,9 @@ void show_byte_op_json(std::ostream &out, const namespacet &ns,
   // 3. json_get_key_byte_op_num(byte_op_type): returns relevant json object key string
   //    where object number of given byte operation.
 
-  std::string key_byte_op_stats = json_get_key_byte_op_stats(byte_op_type);
-  std::string key_byte_op_list = json_get_key_byte_op_list(byte_op_type);
-  std::string key_byte_op_num = json_get_key_byte_op_num(byte_op_type);
+  std::string key_byte_op_stats = json_get_key_byte_op_stats(type);
+  std::string key_byte_op_list = json_get_key_byte_op_list(type);
+  std::string key_byte_op_num = json_get_key_byte_op_num(type);
 
   json_objectt &byte_op_stats = byte_ops_stats[key_byte_op_stats].make_object();
   json_arrayt &byte_op_list = byte_op_stats[key_byte_op_list].make_array();
@@ -271,7 +255,7 @@ void show_byte_op_json(std::ostream &out, const namespacet &ns,
       continue;
 
     const exprt &ssa_expr = get_ssa_expr(step);
-    std::size_t ssa_expr_byte_op_count = get_byte_op_count(ssa_expr, byte_op_type);
+    std::size_t ssa_expr_byte_op_count = get_byte_op_count(ssa_expr, type);
 
     if(ssa_expr_byte_op_count == 0)
       continue;
