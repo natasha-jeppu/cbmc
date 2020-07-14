@@ -202,3 +202,45 @@ void show_byte_op_plain(messaget::mstreamt &out, const namespacet &ns,
   out << equation_byte_op_count << '\n';
   out << messaget::eom;
 }
+
+std::string json_get_key_byte_op_stats(int byte_op_type)
+{
+  switch(byte_op_type)
+  {
+  case BYTE_EXTRACT:
+    return "byteExtractStats";
+  case BYTE_UPDATE:
+    return "byteUpdateStats";
+  default:
+    std::cout << "Usage error!\n";
+    exit(CPROVER_EXIT_USAGE_ERROR);
+  }
+}
+
+std::string json_get_key_byte_op_list(int byte_op_type)
+{
+  switch(byte_op_type)
+  {
+  case BYTE_EXTRACT:
+    return "byteExtractList";
+  case BYTE_UPDATE:
+    return "byteUpdateList";
+  default:
+    std::cout << "Usage error!\n";
+    exit(CPROVER_EXIT_USAGE_ERROR);
+  }
+}
+
+std::string json_get_key_byte_op_num(int byte_op_type)
+{
+  switch(byte_op_type)
+  {
+  case BYTE_EXTRACT:
+    return "numOfExtracts";
+  case BYTE_UPDATE:
+    return "numOfUpdates";
+  default:
+    std::cout << "Usage error!\n";
+    exit(CPROVER_EXIT_USAGE_ERROR);
+  }
+}
