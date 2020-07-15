@@ -141,24 +141,28 @@ void show_ssa_step_plain(messaget::mstreamt &out, const namespacet &ns,
   const SSA_stept &ssa_step, const exprt &ssa_expr)
 {
   const irep_idt &function_id = ssa_step.source.function_id;
-  std::string string_value = from_expr(ns, function_id, ssa_expr);
+  const std::string ssa_expr_as_string = from_expr(ns, function_id, ssa_expr);
 
   out << messaget::faint << "// " << ssa_step.source.pc->location_number << " ";
   out << ssa_step.source.pc->source_location.as_string() << "\n" << messaget::reset;
-  out << string_value << "\n";
+  out << ssa_expr_as_string  << "\n";
 }
 
 void show_ssa_step_json(std::ostream &out, const namespacet &ns, 
   const SSA_stept &ssa_step, const exprt &ssa_expr, json_arrayt &byte_op_list)
 {
+  const std::string key_srcloc = "sourceLocation";
+  const std::string key_ssa_expr = "ssaExpr";
+  const std::string key_ssa_expr_as_string = "ssaExprString";
+
   json_objectt &json_ssa_step = byte_op_list.push_back(jsont()).make_object();
 
-  json_ssa_step["sourceLocation"] = json(ssa_step.source.pc->source_location);
+  json_ssa_step[key_srcloc] = json(ssa_step.source.pc->source_location);
 
   const irep_idt &function_id = ssa_step.source.function_id;
-  std::string string_value = from_expr(ns, function_id, ssa_expr);
-  json_ssa_step["ssaExprString"] = json_stringt(string_value);
-  json_ssa_step["ssaExpr"] = json_irept(false).convert_from_irep(ssa_expr);
+  const std::string ssa_expr_as_string = from_expr(ns, function_id, ssa_expr);
+  json_ssa_step[key_ssa_expr_as_string] = json_stringt(ssa_expr_as_string);
+  json_ssa_step[key_ssa_expr] = json_irept(false).convert_from_irep(ssa_expr);
 }
 
 void show_byte_op_plain(messaget::mstreamt &out, const namespacet &ns, 
@@ -239,9 +243,9 @@ void show_byte_op_json(std::ostream &out, const namespacet &ns,
   // 3. json_get_key_byte_op_num(byte_op_type): returns relevant json object key string
   //    where object number of given byte operation.
 
-  std::string key_byte_op_stats = json_get_key_byte_op_stats(type);
-  std::string key_byte_op_list = json_get_key_byte_op_list(type);
-  std::string key_byte_op_num = json_get_key_byte_op_num(type);
+  const std::string key_byte_op_stats = json_get_key_byte_op_stats(type);
+  const std::string key_byte_op_list = json_get_key_byte_op_list(type);
+  const std::string key_byte_op_num = json_get_key_byte_op_num(type);
 
   json_objectt &byte_op_stats = byte_ops_stats[key_byte_op_stats].make_object();
   json_arrayt &byte_op_list = byte_op_stats[key_byte_op_list].make_array();
