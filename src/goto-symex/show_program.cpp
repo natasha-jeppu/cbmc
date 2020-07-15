@@ -84,7 +84,7 @@ void show_program(const namespacet &ns, const symex_target_equationt &equation)
   }
 }
 
-enum byte_op_type {BYTE_EXTRACT, BYTE_UPDATE};
+typedef irept::byte_op_type byte_op_type;
 
 bool duplicated_previous_step(const SSA_stept &ssa_step)
 {
@@ -98,43 +98,6 @@ exprt get_ssa_expr(const SSA_stept &ssa_step)
   return ((ssa_step.is_shared_read() || ssa_step.is_shared_write())
                                ? ssa_step.ssa_lhs
                                : ssa_step.cond_expr);
-}
-
-bool is_byte_extract(const irept &irep)
-{
-  return (irep.id() == ID_byte_extract_little_endian ||
-      irep.id() == ID_byte_extract_big_endian);
-}
-
-bool is_byte_update(const irept &irep)
-{
-  return (irep.id() == ID_byte_update_little_endian ||
-      irep.id() == ID_byte_update_big_endian);
-}
-
-bool irep_is_of_type(const irept &irep, const byte_op_type type)
-{
-  switch(type)
-  {
-  case BYTE_EXTRACT:
-    return is_byte_extract(irep);
-  case BYTE_UPDATE:
-    return is_byte_update(irep);
-  } 
-}
-
-std::size_t get_byte_op_count(const irept &irep, const byte_op_type type)
-{
-  std::size_t count = 0;
-  if(!irep.id().empty() && irep_is_of_type(irep, type))
-    count ++;
-
-  forall_irep(it, irep.get_sub())
-  {
-    count += get_byte_op_count(*it, type);
-  }
-
-  return count; 
 }
 
 void show_ssa_step_plain(messaget::mstreamt &out, const namespacet &ns, 
@@ -175,7 +138,7 @@ void show_byte_op_plain(messaget::mstreamt &out, const namespacet &ns,
       continue;
 
     const exprt &ssa_expr = get_ssa_expr(step);
-    std::size_t ssa_expr_byte_op_count = get_byte_op_count(ssa_expr, type);
+    std::size_t ssa_expr_byte_op_count = ssa_expr.get_byte_op_count(type);
 
     if(ssa_expr_byte_op_count == 0)
       continue;
@@ -186,10 +149,10 @@ void show_byte_op_plain(messaget::mstreamt &out, const namespacet &ns,
 
   switch(type)
   {
-  case BYTE_EXTRACT:
+  case byte_op_type::BYTE_EXTRACT:
     out << '\n' << "Number of byte extracts: ";
     break;
-  case BYTE_UPDATE:
+  case byte_op_type::BYTE_UPDATE:
     out << '\n' << "Number of byte updates: ";
     break;
   }
@@ -202,9 +165,9 @@ std::string json_get_key_byte_op_stats(const byte_op_type type)
 {
   switch(type)
   {
-  case BYTE_EXTRACT:
+  case byte_op_type::BYTE_EXTRACT:
     return "byteExtractStats";
-  case BYTE_UPDATE:
+  case byte_op_type::BYTE_UPDATE:
     return "byteUpdateStats";
   }
 }
@@ -213,9 +176,9 @@ std::string json_get_key_byte_op_list(const byte_op_type type)
 {
   switch(type)
   {
-  case BYTE_EXTRACT:
+  case byte_op_type::BYTE_EXTRACT:
     return "byteExtractList";
-  case BYTE_UPDATE:
+  case byte_op_type::BYTE_UPDATE:
     return "byteUpdateList";
   }
 }
@@ -224,9 +187,9 @@ std::string json_get_key_byte_op_num(const byte_op_type type)
 {
   switch(type)
   {
-  case BYTE_EXTRACT:
+  case byte_op_type::BYTE_EXTRACT:
     return "numOfExtracts";
-  case BYTE_UPDATE:
+  case byte_op_type::BYTE_UPDATE:
     return "numOfUpdates";
   }
 }
@@ -257,7 +220,7 @@ void show_byte_op_json(std::ostream &out, const namespacet &ns,
       continue;
 
     const exprt &ssa_expr = get_ssa_expr(step);
-    std::size_t ssa_expr_byte_op_count = get_byte_op_count(ssa_expr, type);
+    std::size_t ssa_expr_byte_op_count = ssa_expr.get_byte_op_count(type);
 
     if(ssa_expr_byte_op_count == 0)
       continue;
@@ -307,8 +270,8 @@ void show_byte_ops(const optionst &options,
     json_objectt json_result;
     json_objectt &byte_ops_stats = json_result["byteOpsStats"].make_object();
 
-    show_byte_op_json(out, ns, equation, BYTE_EXTRACT, byte_ops_stats);
-    show_byte_op_json(out, ns, equation, BYTE_UPDATE, byte_ops_stats);
+    show_byte_op_json(out, ns, equation, byte_op_type::BYTE_EXTRACT, byte_ops_stats);
+    show_byte_op_json(out, ns, equation, byte_op_type::BYTE_UPDATE, byte_ops_stats);
 
     out << ",\n" << json_result;
     break;
@@ -322,19 +285,19 @@ void show_byte_ops(const optionst &options,
 
       msg.status() << "\nByte Extracts written to file"
                    << messaget::eom;
-      show_byte_op_plain(mout.status(), ns, equation, BYTE_EXTRACT);
+      show_byte_op_plain(mout.status(), ns, equation, byte_op_type::BYTE_EXTRACT);
 
       msg.status() << "\nByte Updates written to file"
                    << messaget::eom;
-      show_byte_op_plain(mout.status(), ns, equation, BYTE_UPDATE);
+      show_byte_op_plain(mout.status(), ns, equation, byte_op_type::BYTE_UPDATE);
     }
     else
     {
       msg.status() << "\nByte Extracts:" << messaget::eom;
-      show_byte_op_plain(msg.status(), ns, equation, BYTE_EXTRACT);
+      show_byte_op_plain(msg.status(), ns, equation, byte_op_type::BYTE_EXTRACT);
 
       msg.status() << "\nByte Updates:" << messaget::eom;
-      show_byte_op_plain(msg.status(), ns, equation, BYTE_UPDATE);
+      show_byte_op_plain(msg.status(), ns, equation, byte_op_type::BYTE_UPDATE);
     }
     break;
   }
