@@ -11,3 +11,6 @@ main.c
 ^.*main\.c line 8 function main$
 ^.* byte\_update\_little\_endian\(.*\)$
 ^Number of byte updates: 1$
+--
+--
+To test --show-byte-ops option that displays byte extract and update metrics.
