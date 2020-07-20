@@ -138,7 +138,7 @@ void show_byte_op_plain(messaget::mstreamt &out, const namespacet &ns,
       continue;
 
     const exprt &ssa_expr = get_ssa_expr(step);
-    std::size_t ssa_expr_byte_op_count = ssa_expr.get_byte_op_count(type);
+    const std::size_t ssa_expr_byte_op_count = ssa_expr.get_byte_op_count(type);
 
     if(ssa_expr_byte_op_count == 0)
       continue;
@@ -220,7 +220,7 @@ void show_byte_op_json(std::ostream &out, const namespacet &ns,
       continue;
 
     const exprt &ssa_expr = get_ssa_expr(step);
-    std::size_t ssa_expr_byte_op_count = ssa_expr.get_byte_op_count(type);
+    const std::size_t ssa_expr_byte_op_count = ssa_expr.get_byte_op_count(type);
 
     if(ssa_expr_byte_op_count == 0)
       continue;
@@ -243,7 +243,7 @@ void show_byte_ops(const optionst &options,
   const namespacet &ns, const symex_target_equationt &equation)
 {
   const std::string &filename = options.get_option("outfile");
-  bool outfile_given = is_outfile_specified(options);
+  const bool outfile_given = is_outfile_specified(options);
 
   std::ofstream of;
 
