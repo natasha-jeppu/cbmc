@@ -31,12 +31,12 @@ void show_program(const namespacet &ns, const symex_target_equationt &equation);
 /// Count and display all byte extract and byte update operations from equation
 /// on standard output or file.
 /// The name of the output file is given by the `outfile` option from
-/// \p options, the standard input is used if it is not provided.
+/// \p options, the standard output is used if it is not provided.
 /// The format is either JSON or plain text depending on \p ui_message_handler;
 /// XML is not supported.
 /// For each step, if it's a byte extract or update, print location, ssa expression and 
 /// compute number of extracts/updates in total in the equation.
-/// \param options: parse options
+/// \param options: parsed options
 /// \param ui_message_handler: ui message handler
 /// \param ns: namespace
 /// \param equation: SSA form of the program
