@@ -295,7 +295,4 @@ void show_byte_ops(const optionst &options,
     }
     break;
   }
-
-  if(outfile_given)
-    of.close();
 }
