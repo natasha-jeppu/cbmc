@@ -403,43 +403,6 @@ public:
   {
     return id() != ID_nil;
   }
-  bool is_byte_extract() const
-  {
-    return (id() == ID_byte_extract_little_endian ||
-      id() == ID_byte_extract_big_endian);
-  }
-
-  bool is_byte_update() const
-  {
-    return (id() == ID_byte_update_little_endian ||
-      id() == ID_byte_update_big_endian);
-  }
-
-  enum byte_op_type {BYTE_EXTRACT, BYTE_UPDATE};
-  bool irep_is_of_type(const byte_op_type type) const
-  {
-    switch(type)
-    {
-    case BYTE_EXTRACT:
-      return is_byte_extract();
-    case BYTE_UPDATE:
-      return is_byte_update();
-    }
-  }
-
-  std::size_t get_byte_op_count(const byte_op_type type) const
-  {
-    std::size_t count = 0;
-    if(!id().empty() && irep_is_of_type(type))
-      count ++;
-
-    forall_irep(it, get_sub())
-    {
-      count += it->get_byte_op_count(type);
-    }
-
-    return count;
-  }
 
   explicit irept(const irep_idt &_id) : baset(_id)
   {

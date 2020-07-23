@@ -111,6 +111,13 @@ public:
   const exprt &value() const { return op2(); }
 };
 
+template <>
+inline bool can_cast_expr<byte_update_exprt>(const exprt &base)
+{
+  return base.id() == ID_byte_update_little_endian ||
+         base.id() == ID_byte_update_big_endian;
+}
+
 inline const byte_update_exprt &to_byte_update_expr(const exprt &expr)
 {
   PRECONDITION(expr.operands().size() == 3);
@@ -121,6 +128,32 @@ inline byte_update_exprt &to_byte_update_expr(exprt &expr)
 {
   PRECONDITION(expr.operands().size() == 3);
   return static_cast<byte_update_exprt &>(expr);
+}
+
+enum byte_op_type {BYTE_EXTRACT, BYTE_UPDATE};
+inline bool byte_expr_is_of_type(const byte_op_type type, const exprt &expr)
+{
+  switch(type)
+  {
+  case BYTE_EXTRACT:
+    return can_cast_expr<byte_extract_exprt>(expr);
+  case BYTE_UPDATE:
+    return can_cast_expr<byte_update_exprt>(expr);
+  }
+}
+
+inline std::size_t get_byte_op_count(const byte_op_type type, const exprt &expr)
+{
+  std::size_t count = 0;
+  if(!expr.id().empty() && byte_expr_is_of_type(type, expr))
+    count ++;
+
+  forall_expr(it, expr.operands())
+  {
+    count += get_byte_op_count(type, *it);
+  }
+
+  return count;
 }
 
 #endif // CPROVER_UTIL_BYTE_OPERATORS_H

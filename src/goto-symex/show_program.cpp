@@ -21,6 +21,7 @@ Author: Daniel Kroening, kroening@kroening.com
 // #include <util/ui_message.h>
 #include <util/json_irep.h>
 #include <util/exit_codes.h>
+#include <util/byte_operators.h>
 
 class ui_message_handlert;
 
@@ -86,8 +87,6 @@ void show_program(const namespacet &ns, const symex_target_equationt &equation)
   }
 }
 
-typedef irept::byte_op_type byte_op_type;
-
 bool duplicated_previous_step(const SSA_stept &ssa_step)
 {
   return !(ssa_step.is_assignment() || ssa_step.is_assert() ||
@@ -133,7 +132,7 @@ void show_byte_op_plain(messaget::mstreamt &out, const namespacet &ns,
       continue;
 
     const exprt &ssa_expr = step.get_ssa_expr();
-    const std::size_t ssa_expr_byte_op_count = ssa_expr.get_byte_op_count(type);
+    const std::size_t ssa_expr_byte_op_count = get_byte_op_count(type, ssa_expr);
 
     if(ssa_expr_byte_op_count == 0)
       continue;
@@ -215,7 +214,7 @@ void show_byte_op_json(std::ostream &out, const namespacet &ns,
       continue;
 
     const exprt &ssa_expr = step.get_ssa_expr();
-    const std::size_t ssa_expr_byte_op_count = ssa_expr.get_byte_op_count(type);
+    const std::size_t ssa_expr_byte_op_count = get_byte_op_count(type, ssa_expr);
 
     if(ssa_expr_byte_op_count == 0)
       continue;
