@@ -93,13 +93,6 @@ bool duplicated_previous_step(const SSA_stept &ssa_step)
             ssa_step.is_shared_read() || ssa_step.is_shared_write());
 }
 
-exprt get_ssa_expr(const SSA_stept &ssa_step)
-{
-  return ((ssa_step.is_shared_read() || ssa_step.is_shared_write())
-                               ? ssa_step.ssa_lhs
-                               : ssa_step.cond_expr);
-}
-
 void show_ssa_step_plain(messaget::mstreamt &out, const namespacet &ns, 
   const SSA_stept &ssa_step, const exprt &ssa_expr)
 {
@@ -137,7 +130,7 @@ void show_byte_op_plain(messaget::mstreamt &out, const namespacet &ns,
     if(duplicated_previous_step(step))
       continue;
 
-    const exprt &ssa_expr = get_ssa_expr(step);
+    const exprt &ssa_expr = step.get_ssa_expr();
     const std::size_t ssa_expr_byte_op_count = ssa_expr.get_byte_op_count(type);
 
     if(ssa_expr_byte_op_count == 0)
@@ -219,7 +212,7 @@ void show_byte_op_json(std::ostream &out, const namespacet &ns,
     if(duplicated_previous_step(step))
       continue;
 
-    const exprt &ssa_expr = get_ssa_expr(step);
+    const exprt &ssa_expr = step.get_ssa_expr();
     const std::size_t ssa_expr_byte_op_count = ssa_expr.get_byte_op_count(type);
 
     if(ssa_expr_byte_op_count == 0)
