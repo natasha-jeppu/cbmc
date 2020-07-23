@@ -18,9 +18,11 @@ Author: Daniel Kroening, kroening@kroening.com
 
 #include <langapi/language_util.h>
 
-#include <util/ui_message.h>
+// #include <util/ui_message.h>
 #include <util/json_irep.h>
 #include <util/exit_codes.h>
+
+class ui_message_handlert;
 
 /// Output a single SSA step
 /// \param ns: Namespace
