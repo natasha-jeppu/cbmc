@@ -176,6 +176,7 @@ void run_property_decider(
   "(show-loops)" \
   "(show-vcc)" \
   "(show-goto-symex-steps)" \
+  "(show-points-to-sets)" \
   "(slice-formula)" \
   "(unwinding-assertions)" \
   "(no-unwinding-assertions)" \
@@ -202,6 +203,7 @@ void run_property_decider(
   " --show-symex-strategies      list strategies for use with --paths\n" \
   " --show-goto-symex-steps      show which steps symex travels, includes " \
   "                              diagnostic information\n" \
+  " --show-points-to-sets        show points-to sets for pointer dereference\n" \
   " --program-only               only show program expression\n" \
   " --show-loops                 show the loops in the program\n" \
   " --depth nr                   limit search depth\n" \
