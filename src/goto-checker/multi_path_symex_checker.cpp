@@ -18,7 +18,6 @@ Author: Daniel Kroening, Peter Schrammel
 #include "bmc_util.h"
 #include "counterexample_beautification.h"
 #include "goto_symex_fault_localizer.h"
-#include "exit_codes.h" //nat
 
 multi_path_symex_checkert::multi_path_symex_checkert(
   const optionst &options,
@@ -64,7 +63,6 @@ operator()(propertiest &properties)
     equation_generated = true;
   }
 
-  report(); //nat
   run_property_decider(result, properties, solver_runtime);
 
   return result;
@@ -167,7 +165,5 @@ void multi_path_symex_checkert::report()
     with_solver_hardness(
       property_decider.get_decision_procedure(),
       [](solver_hardnesst &hardness) { hardness.produce_report(); });
-
-    exit(CPROVER_EXIT_SUCCESS); //nat
   }
 }
